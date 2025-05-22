@@ -1,0 +1,32 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mapaFragmentRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Mapa de Google -->
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Botón flotante para centrar el mapa en la ubicación del usuario con borde y fondo blanco -->
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/button_background">
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btnUbicacion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:src="@android:drawable/ic_menu_mylocation"
+            android:contentDescription="Mi ubicación"
+            android:background="@android:color/transparent" />
+    </FrameLayout>
+
+</FrameLayout>

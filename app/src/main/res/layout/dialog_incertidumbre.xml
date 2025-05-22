@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/white">
+
+    <!-- Título de la aplicación -->
+    <TextView
+        android:id="@+id/appTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tu Opinión Cuenta"
+        android:textSize="24sp"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Pregunta 1 -->
+    <TextView
+        android:id="@+id/pregunta1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1. Me siento inseguro al esperar el transporte porque no sé si llegará a tiempo."
+        android:textSize="16sp"
+        android:textColor="@android:color/black"/>
+
+    <RadioGroup
+        android:id="@+id/radioGroupPregunta1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <RadioButton
+            android:id="@+id/radio1_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio1_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio1_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio1_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio1_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5"
+            android:textColor="@android:color/black"/>
+    </RadioGroup>
+
+    <!-- Pregunta 2 -->
+    <TextView
+        android:id="@+id/pregunta2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2. No tengo certeza sobre la ubicación exacta del microbús cuando lo espero."
+        android:textSize="16sp"
+        android:textColor="@android:color/black"/>
+
+    <RadioGroup
+        android:id="@+id/radioGroupPregunta2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <RadioButton
+            android:id="@+id/radio2_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio2_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio2_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio2_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio2_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5"
+            android:textColor="@android:color/black"/>
+    </RadioGroup>
+
+    <!-- Pregunta 3 -->
+    <TextView
+        android:id="@+id/pregunta3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="3. Me preocupa perder el microbús por no saber si ya pasó o está por llegar."
+        android:textSize="16sp"
+        android:textColor="@android:color/black"/>
+
+    <RadioGroup
+        android:id="@+id/radioGroupPregunta3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <RadioButton
+            android:id="@+id/radio3_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio3_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio3_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio3_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+
+        <RadioButton
+            android:id="@+id/radio3_5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="5"
+            android:textColor="@android:color/black"/>
+    </RadioGroup>
+
+    <!-- Botón de enviar -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/submitButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enviar"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:layout_gravity="center"
+        android:background="@drawable/button_background" />
+</LinearLayout>

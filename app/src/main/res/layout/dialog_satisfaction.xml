@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#FFFFFF"
+    android:gravity="center"
+    android:layout_marginTop="16dp">
+
+    <TextView
+        android:id="@+id/satisfactionTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Califica tu experiencia"
+        android:textSize="20sp"
+        android:textColor="#333333"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <RatingBar
+        android:id="@+id/ratingBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:numStars="5"
+        android:rating="0"
+        android:stepSize="1.0"
+        android:layout_marginBottom="24dp"
+        android:layout_gravity="center"
+        android:isIndicator="false"
+        android:progressTint="#FFEB3B"
+        android:progressBackgroundTint="#D3D3D3"
+        android:secondaryProgressTint="#D3D3D3"
+        android:layout_marginTop="24dp" />
+
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/submitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/button_background"
+        android:padding="16dp"
+        android:text="Enviar"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+</LinearLayout>
