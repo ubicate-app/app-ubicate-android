@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "394085211360",
+    "firebase_url": "https://iot-ubicate-default-rtdb.firebaseio.com",
+    "project_id": "iot-ubicate",
+    "storage_bucket": "iot-ubicate.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:394085211360:android:d089d9a916f16ab5518485",
+        "android_client_info": {
+          "package_name": "com.ubicate.app_ubicate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDak9nvyv0K5xaDd3duU_EmNXa_GffIcek"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
