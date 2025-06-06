@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">UBICATE</string>
+    <string name="eta_text">Llega en %1$s</string>
+    <string name="distance_text">%1$s m</string>
 </resources>

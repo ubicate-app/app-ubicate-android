@@ -28,7 +28,6 @@ class BusLocationViewModel(private val repository: BusLocationRepository) : View
         )
     }
 
-
     fun stopListening() {
         listener?.let { repository.stopListening(it) }
     }

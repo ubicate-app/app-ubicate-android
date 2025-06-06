@@ -21,5 +21,9 @@ class MapaViewModel(private val locationRepository: LocationRepository) : ViewMo
             }
         }
     }
+    fun updateUserLocation(latLng: LatLng) {
+        _userLocation.value = latLng
+    }
+
 }
 

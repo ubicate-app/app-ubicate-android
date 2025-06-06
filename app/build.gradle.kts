@@ -78,6 +78,10 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation ("androidx.compose.ui:ui:1.5.3")
+    implementation ("androidx.core:core-splashscreen:1.0.1")
+    implementation ("com.airbnb.android:lottie:6.0.0")
+    implementation ("com.google.android.material:material:1.9.0")
+
 
 }
 apply(plugin = "com.google.gms.google-services")
