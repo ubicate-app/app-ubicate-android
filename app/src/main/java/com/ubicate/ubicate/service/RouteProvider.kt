@@ -29,6 +29,10 @@ class RouteProvider {
         LatLng(-8.050201865117678, -79.05629006393579),
         LatLng(-8.049346177004681, -79.05383068032637)
     )
+    fun getBusRouteCoordinates(): List<LatLng>{
+        return busRouteCoordinates
+    }
+
 
     private val client = OkHttpClient()
 

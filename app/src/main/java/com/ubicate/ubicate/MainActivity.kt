@@ -1,21 +1,23 @@
 package com.ubicate.ubicate
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.ubicate.ubicate.databinding.ActivityMainBinding
+import com.ubicate.ubicate.repository.LocationSettingsChecker
 import com.ubicate.ubicate.view.SatisfactionDialogFragment
 import com.ubicate.ubicate.view.IncertidumbreDialogFragment
+import com.ubicate.ubicate.view.MapaFragment
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    // Crear una variable para manejar SharedPreferences
     private val sharedPreferences by lazy {
         getSharedPreferences("UserPreferences", Context.MODE_PRIVATE)
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -32,13 +34,10 @@ class MainActivity : AppCompatActivity() {
 
     @Deprecated("onBackPressed is deprecated", ReplaceWith("onBackPressedDispatcher.onBackPressed()"))
     override fun onBackPressed() {
-        // Mostrar el formulario de satisfacción cuando el usuario intente retroceder
         val dialog = SatisfactionDialogFragment()
-        dialog.isCancelable = false  // No permitir cerrar el diálogo hasta enviar la respuesta
+        dialog.isCancelable = false
         dialog.show(supportFragmentManager, "SatisfactionDialog")
 
-        // Evitar que la aplicación se cierre automáticamente
-        // Aquí no llamamos a super.onBackPressed() para evitar que la actividad se cierre
     }
 
     // Método para mostrar el formulario de incertidumbre
@@ -59,4 +58,18 @@ class MainActivity : AppCompatActivity() {
         editor.putBoolean("incertidumbreSubmitted", true)
         editor.apply()
     }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == LocationSettingsChecker.REQUEST_CHECK_SETTINGS) {
+            if (resultCode == Activity.RESULT_OK) {
+                supportFragmentManager.fragments.forEach { fragment ->
+                    if (fragment is MapaFragment) {
+                        fragment.onLocationEnabled()
+                    }
+                }
+            }
+        }
+    }
+
 }
