@@ -26,7 +26,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.topAppBar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Mostrar el formulario de incertidumbre si aún no se ha enviado
         if (!hasSubmittedIncertidumbre()) {
             showIncertidumbreForm()
         }
@@ -40,19 +39,16 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    // Método para mostrar el formulario de incertidumbre
     private fun showIncertidumbreForm() {
         val dialog = IncertidumbreDialogFragment()
-        dialog.isCancelable = false  // No permitir cerrar el diálogo hasta que el usuario lo envíe
+        dialog.isCancelable = false
         dialog.show(supportFragmentManager, "IncertidumbreDialog")
     }
 
-    // Verifica si el usuario ya envió el formulario de incertidumbre
     private fun hasSubmittedIncertidumbre(): Boolean {
         return sharedPreferences.getBoolean("incertidumbreSubmitted", false)
     }
 
-    // Marcar que el formulario de incertidumbre fue enviado
     fun markIncertidumbreAsSubmitted() {
         val editor = sharedPreferences.edit()
         editor.putBoolean("incertidumbreSubmitted", true)

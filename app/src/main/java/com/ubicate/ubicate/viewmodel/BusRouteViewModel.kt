@@ -13,7 +13,6 @@ class BusRouteViewModel(private val repository: RouteRepository) : ViewModel() {
     private val _busRoute = MutableLiveData<PolylineOptions>()
     val busRoute: LiveData<PolylineOptions> = _busRoute
 
-    // Método para cargar la ruta ajustada
     fun loadSnappedRoute() {
         viewModelScope.launch {
             val polyline = repository.fetchSnappedBusRoute()

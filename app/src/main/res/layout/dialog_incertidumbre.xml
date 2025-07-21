@@ -23,7 +23,7 @@
         android:id="@+id/pregunta1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="1. Me siento inseguro al esperar el transporte porque no sé si llegará a tiempo."
+        android:text="1. Durante algunos viajes, el tiempo que tardo en llegar es mucho peor que el promedio."
         android:textSize="16sp"
         android:textColor="@android:color/black"/>
 
@@ -79,7 +79,7 @@
         android:id="@+id/pregunta2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="2. No tengo certeza sobre la ubicación exacta del microbús cuando lo espero."
+        android:text="2. Cuando hay tráfico en horas pico, el viaje toma mucho más tiempo que cuando no hay congestión."
         android:textSize="16sp"
         android:textColor="@android:color/black"/>
 
@@ -135,7 +135,7 @@
         android:id="@+id/pregunta3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="3. Me preocupa perder el microbús por no saber si ya pasó o está por llegar."
+        android:text="3. Para llegar a tiempo la mayoría de las veces, necesito agregar tiempo extra a mi viaje."
         android:textSize="16sp"
         android:textColor="@android:color/black"/>
 
@@ -184,6 +184,37 @@
             android:layout_height="wrap_content"
             android:text="5"
             android:textColor="@android:color/black"/>
+    </RadioGroup>
+    <!-- Pregunta 4 -->
+    <TextView
+        android:id="@+id/pregunta4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="4. Sé cuánto tiempo total debo planificar para asegurarme de llegar a tiempo casi siempre."
+        android:textSize="16sp"
+        android:textColor="@android:color/black" />
+
+    <RadioGroup
+        android:id="@+id/radioGroupPregunta4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <RadioButton android:id="@+id/radio4_1" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="1" android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+        <RadioButton android:id="@+id/radio4_2" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="2" android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+        <RadioButton android:id="@+id/radio4_3" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="3" android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+        <RadioButton android:id="@+id/radio4_4" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="4" android:textColor="@android:color/black"
+            android:layout_marginEnd="8dp"/>
+        <RadioButton android:id="@+id/radio4_5" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="5" android:textColor="@android:color/black"/>
     </RadioGroup>
 
     <!-- Botón de enviar -->

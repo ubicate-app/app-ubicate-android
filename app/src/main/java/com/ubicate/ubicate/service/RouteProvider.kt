@@ -1,5 +1,10 @@
 package com.ubicate.ubicate.service
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -29,10 +34,10 @@ class RouteProvider {
         LatLng(-8.050201865117678, -79.05629006393579),
         LatLng(-8.049346177004681, -79.05383068032637)
     )
-    fun getBusRouteCoordinates(): List<LatLng>{
+
+    fun getBusRouteCoordinates(): List<LatLng> {
         return busRouteCoordinates
     }
-
 
     private val client = OkHttpClient()
 
@@ -84,14 +89,15 @@ class RouteProvider {
                             return
                         }
 
-                        val overviewPolyline = routes.getJSONObject(0).getJSONObject("overview_polyline")
+                        val overviewPolyline =
+                            routes.getJSONObject(0).getJSONObject("overview_polyline")
                         val encodedPolyline = overviewPolyline.getString("points")
                         val decodedPath = decodePolyline(encodedPolyline)
 
                         val polylineOptions = PolylineOptions()
                             .addAll(decodedPath)
                             .width(10f)
-                            .color(0xFF0000FF.toInt()) // Azul
+                            .color(0xFF0000FF.toInt())
 
                         if (cont.isActive) cont.resume(polylineOptions)
 
@@ -103,7 +109,12 @@ class RouteProvider {
         })
     }
 
-    private fun buildDirectionsUrl(origin: LatLng, destination: LatLng, waypoints: List<LatLng>): String {
+    private fun buildDirectionsUrl(
+        origin: LatLng,
+        destination: LatLng,
+        waypoints: List<LatLng>,
+        mode: String = "driving"
+    ): String {
         val originParam = "origin=${origin.latitude},${origin.longitude}"
         val destinationParam = "destination=${destination.latitude},${destination.longitude}"
 
@@ -114,7 +125,7 @@ class RouteProvider {
             ""
         }
 
-        return "https://maps.googleapis.com/maps/api/directions/json?$originParam&$destinationParam&$waypointsParam&key=$apiKey"
+        return "https://maps.googleapis.com/maps/api/directions/json?$originParam&$destinationParam&$waypointsParam&mode=$mode&key=$apiKey"
     }
 
     private fun decodePolyline(encoded: String): List<LatLng> {
@@ -150,5 +161,88 @@ class RouteProvider {
             poly.add(p)
         }
         return poly
+    }
+
+    @OptIn(UnstableApi::class)
+    suspend fun getRouteBetweenLocations(
+        startLocation: LatLng,
+        endLocation: LatLng,
+        isWalkingRoute: Boolean = false
+    ): Pair<PolylineOptions, String> = suspendCancellableCoroutine { cont ->
+
+        val mode = if (isWalkingRoute) "walking" else "driving"
+
+        val url = buildDirectionsUrl(startLocation, endLocation, listOf(), mode)
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (cont.isActive) cont.resumeWithException(e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (!response.isSuccessful) {
+                        if (cont.isActive) cont.resumeWithException(IOException("Error en respuesta HTTP: ${response.code}"))
+                        return
+                    }
+
+                    val body = response.body?.string()
+                    if (body == null) {
+                        if (cont.isActive) cont.resumeWithException(IOException("Respuesta vacía"))
+                        return
+                    }
+
+                    try {
+                        val json = JSONObject(body)
+                        val status = json.getString("status")
+                        if (status != "OK") {
+                            if (cont.isActive) cont.resumeWithException(IOException("Google Directions API status: $status"))
+                            return
+                        }
+
+                        val routes = json.getJSONArray("routes")
+                        if (routes.length() == 0) {
+                            if (cont.isActive) cont.resumeWithException(IOException("No se encontraron rutas"))
+                            return
+                        }
+
+                        val overviewPolyline =
+                            routes.getJSONObject(0).getJSONObject("overview_polyline")
+                        val encodedPolyline = overviewPolyline.getString("points")
+                        val decodedPath = decodePolyline(encodedPolyline)
+
+                        val polylineOptions = PolylineOptions()
+                            .addAll(decodedPath)
+                            .width(10f)
+                            .color(0xFF1976D2.toInt())
+                            .pattern(listOf(
+                                com.google.android.gms.maps.model.Dash(20f),
+                                com.google.android.gms.maps.model.Gap(10f)
+                            ))
+
+                        val durationText =
+                            routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0)
+                                .getJSONObject("duration").getString("text")
+                        val distanceText =
+                            routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0)
+                                .getJSONObject("distance").getString("text")
+
+                        if (cont.isActive) cont.resume(
+                            Pair(
+                                polylineOptions,
+                                "$durationText - $distanceText"
+                            )
+                        )
+
+                    } catch (ex: Exception) {
+                        if (cont.isActive) cont.resumeWithException(ex)
+                    }
+                }
+            }
+        })
     }
 }
