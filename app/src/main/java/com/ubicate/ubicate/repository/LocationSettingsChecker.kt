@@ -46,7 +46,6 @@ class LocationSettingsChecker(private val activity: Activity) {
         }
     }
 
-    // Aquí agregas el método isLocationEnabled para chequear si la ubicación está activa
     fun isLocationEnabled(): Boolean {
         val locationManager = activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||

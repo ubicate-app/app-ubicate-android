@@ -9,9 +9,9 @@ import com.ubicate.ubicate.R
 import com.ubicate.ubicate.model.BusLocation
 
 class BusDetailsDialogFragment(
-    private val busLocation: BusLocation,  // Información del bus
-    private val eta: String,  // Tiempo estimado de llegada
-    private val distance: String // Distancia
+    private val busLocation: BusLocation,
+    private val eta: String,
+    private val distance: String
 ) : BottomSheetDialogFragment() {
 
     override fun onCreateView(

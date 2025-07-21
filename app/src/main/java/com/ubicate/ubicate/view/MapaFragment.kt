@@ -1,12 +1,15 @@
 package com.ubicate.ubicate.view
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,10 +17,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -33,7 +38,6 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.ubicate.ubicate.R
 import com.ubicate.ubicate.model.BusLocation
-import com.ubicate.ubicate.model.Location
 import com.ubicate.ubicate.repository.BusLocationRepository
 import com.ubicate.ubicate.repository.LocationRepository
 import com.ubicate.ubicate.repository.LocationSettingsChecker
@@ -46,6 +50,10 @@ import com.ubicate.ubicate.viewmodel.factory.BusLocationViewModelFactory
 import com.ubicate.ubicate.viewmodel.MapaViewModel
 import com.ubicate.ubicate.viewmodel.factory.MapaViewModelFactory
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.maps.model.Polyline
+import com.ubicate.ubicate.repository.UserRepository
+import com.ubicate.ubicate.service.BusLocationService
+import kotlinx.coroutines.launch
 
 class MapaFragment : Fragment(), OnMapReadyCallback {
 
@@ -60,20 +68,33 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
     private var selectedBus: BusLocation? = null
     private var waitingLocation: LatLng? = null
     private lateinit var locationSettingsChecker: LocationSettingsChecker
-    private val handler = Handler(Looper.getMainLooper())
+
+    private var currentPolyline: Polyline? = null
+    private lateinit var userRepository: UserRepository
+    private lateinit var locationRepository: LocationRepository
+    private lateinit var busLocationRepository: BusLocationRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        userRepository = UserRepository(requireContext())
+        locationRepository = LocationRepository(requireContext())
+        busLocationRepository = BusLocationRepository()
+
+        val userId = userRepository.getUserId()
+
+        val busFactory = BusLocationViewModelFactory(busLocationRepository)
+        busLocationViewModel = ViewModelProvider(this, busFactory).get(BusLocationViewModel::class.java)
+
+        if (userId == null) {
+            val newUserId = userRepository.generateUniqueUserId()
+            userRepository.saveUser(newUserId, false)
+            showRoleSelectionDialog(newUserId)
+        }
+
         val routeRepository = RouteRepository(RouteProvider())
         val routeFactory = BusRouteViewModelFactory(routeRepository)
         busRouteViewModel = ViewModelProvider(this, routeFactory).get(BusRouteViewModel::class.java)
-
-        val busRepository = BusLocationRepository()
-        val busFactory = BusLocationViewModelFactory(busRepository)
-        busLocationViewModel = ViewModelProvider(this, busFactory).get(BusLocationViewModel::class.java)
-        busLocationViewModel.startListening()
-
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? =
@@ -81,6 +102,8 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        busLocationViewModel.startListening()
 
         locationSettingsChecker = LocationSettingsChecker(requireActivity())
 
@@ -106,18 +129,21 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
                 googleMap.animateCamera(cameraUpdate)
 
                 if (userLocationMarker == null) {
+                    val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_user_location)
+                    val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 100, 100, false)
+
+                    val userLocationIcon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+
                     userLocationMarker = googleMap.addMarker(
-                        MarkerOptions()
-                            .position(location)
+                        MarkerOptions().position(location)
                             .title("Tu ubicación")
+                            .icon(userLocationIcon)
                     )
                 } else {
                     userLocationMarker?.position = location
                 }
             }
         }
-
-
 
         busLocationViewModel.busLocations.observe(viewLifecycleOwner) { buses ->
             if (::googleMap.isInitialized) {
@@ -127,10 +153,7 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
 
         busRouteViewModel.busRoute.observe(viewLifecycleOwner) { polylineOptions ->
             if (::googleMap.isInitialized) {
-                // Cambiar el color de la polilínea aquí con un color hexadecimal (por ejemplo, #FF5722 para un color anaranjado)
                 polylineOptions.color(0xFF4CAF50.toInt())
-
-                // Agregar la polilínea con el color configurado
                 googleMap.addPolyline(polylineOptions)
             }
         }
@@ -148,23 +171,143 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
         }
     }
 
-    // Calcular la distancia entre dos puntos (usuario y bus) y devolver solo la distancia en metros
-    private fun calculateDistance(userLocation: LatLng, busLocation: Location): Float {
-        val results = FloatArray(1)
-        android.location.Location.distanceBetween(userLocation.latitude, userLocation.longitude, busLocation.lat, busLocation.lng, results)
-        return results[0] // La distancia en metros
+    @Deprecated("Deprecated in Java")
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        startUserMode()
     }
 
+    private fun startUserMode() {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            listenToBusLocations()
+        }
+    }
+    private fun showRoleSelectionDialog(userId: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Selecciona tu rol")
+            .setItems(arrayOf("Soy un bus", "Soy un usuario común")) { _, which ->
+                when (which) {
+                    0 -> {
+                        userRepository.saveUser(userId, true)
+                        saveBusId(userId)
+                        startBusMode(userId)
+                    }
+                    1 -> {
+                        userRepository.saveUser(userId, false)
+                    }
+                }
+            }
+            .show()
+    }
 
-    // Calcular el ETA (tiempo estimado de llegada) basado en la distancia en metros
-    private fun calculateETA(distanceInMeters: Float): String {
-        // Calculamos el ETA usando una velocidad promedio
-        val averageSpeed = 13 // velocidad promedio del bus en km/h
-        val speedInMetersPerSecond = averageSpeed * 1000 / 3600
-        val etaInSeconds = (distanceInMeters / speedInMetersPerSecond).toInt()
-        val etaInMinutes = etaInSeconds / 60
+    private fun saveBusId(busId: String) {
+        val sharedPrefs = requireContext().getSharedPreferences("USER_PREFS", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putString("bus_id", busId).apply()
+    }
 
-        return "$etaInMinutes min"
+    private fun getBusId(): String? {
+        val sharedPrefs = requireContext().getSharedPreferences("USER_PREFS", Context.MODE_PRIVATE)
+        return sharedPrefs.getString("bus_id", null)
+    }
+    private fun createBusStopMarkerWithInfo(position: LatLng, walkingTime: String, walkingDistance: Float) {
+        val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_bus_stop)
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 100, 100, false)
+        val stopIcon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+
+        selectedMarker = googleMap.addMarker(
+            MarkerOptions()
+                .position(position)
+                .title("Esperar bus aquí")
+                .icon(stopIcon)
+        )
+
+        Toast.makeText(
+            requireContext(),
+            "🚏 Parada seleccionada\n🚶‍♂️ Caminarás $walkingTime (${walkingDistance.toInt()}m)",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    private fun calculateWalkingTime(distance: Float): String {
+        val walkingSpeed = 1.39f
+        val timeInSeconds = distance / walkingSpeed
+        val timeInMinutes = timeInSeconds / 60
+
+        return when {
+            timeInMinutes < 1 -> "< 1 min"
+            timeInMinutes < 60 -> "${timeInMinutes.toInt()} min"
+            else -> {
+                val hours = timeInMinutes.toInt() / 60
+                val minutes = timeInMinutes.toInt() % 60
+                "${hours}h ${minutes}m"
+            }
+        }
+    }
+
+    private fun listenToBusLocations() {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            busLocationViewModel.busLocations.observe(viewLifecycleOwner) { buses ->
+                if (::googleMap.isInitialized) {
+                    updateBusMarkers(buses)
+                }
+            }
+        }
+    }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        busLocationViewModel.stopListening()
+    }
+
+    private fun startBusMode(userId: String) {
+        saveBusId(userId)
+
+        val busId = generateBusId()
+        saveBusId(busId)
+
+        if (busId != null) {
+            startLocationUpdates()
+        } else {
+            Toast.makeText(requireContext(), "No se pudo obtener el ID del bus", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateBusMarkers(buses: List<BusLocation>) {
+        val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_bus_icon)
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 75, 75, false)
+
+        val busesIds = buses.map { it.busId }.toSet()
+
+        val iterator = busMarkers.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.key !in busesIds) {
+                entry.value.remove()
+                iterator.remove()
+                Log.d("MapFragment", "Removed marker for bus: ${entry.key}")
+            }
+        }
+
+        for (bus in buses) {
+            val position = LatLng(bus.location.lat, bus.location.lng)
+            Log.d("MapFragment", "Bus location for ${bus.busId}: $position")
+
+            val marker = busMarkers[bus.busId]
+            if (marker == null) {
+                val newMarker = googleMap.addMarker(
+                    MarkerOptions()
+                        .position(position)
+                        .title(bus.busId)
+                        .icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap))
+                )
+                if (newMarker != null) {
+                    busMarkers[bus.busId] = newMarker
+                    Log.d("MapFragment", "Added marker for bus: ${bus.busId}")
+                }
+            } else {
+                marker.position = position
+                Log.d("MapFragment", "Updated marker for bus: ${bus.busId}")
+            }
+        }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -174,58 +317,153 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
         val uiSettings = googleMap.uiSettings
         uiSettings.isMyLocationButtonEnabled = false
 
-        // Establecer el listener para la selección de una ubicación de espera
         googleMap.setOnMapClickListener { latLng ->
-            // Eliminar el marcador previo si existe
             selectedMarker?.remove()
 
-            // Encontrar el punto más cercano en la ruta
-            val nearestPoint = findNearestPointOnRoute(latLng)
+            waitingLocation = latLng
 
-            // Guardamos el punto más cercano como la ubicación de espera
-            waitingLocation = nearestPoint
+            val busRouteCoordinates =
+                busRouteViewModel.busRoute.value?.points ?: return@setOnMapClickListener
 
-            // Colocar un nuevo marcador en el punto más cercano de la ruta
-            selectedMarker = googleMap.addMarker(MarkerOptions().position(nearestPoint).title("Esperar bus aquí"))
+            val closestPoint = findNearestPointOnRoute(waitingLocation!!, busRouteCoordinates)
 
-            // Ahora ya no se debe abrir el modal, solo se marca la ubicación de espera
-            Toast.makeText(requireContext(), "Ubicación de espera seleccionada", Toast.LENGTH_SHORT).show()
+            val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_bus_stop)
+            val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 100, 100, false)
+            val stopIcon = BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+
+            selectedMarker = googleMap.addMarker(
+                MarkerOptions()
+                    .position(closestPoint)
+                    .title("Esperar bus aquí")
+                    .icon(stopIcon)
+            )
+
+            currentPolyline?.remove()
+
+            val userLocation = viewModel.userLocation.value
+
+            if (userLocation != null) {
+                lifecycleScope.launch {
+                    try {
+                        val routeProvider = RouteProvider()
+
+                        val (walkingRoutePolyline, _) = routeProvider.getRouteBetweenLocations(
+                            userLocation,
+                            closestPoint,
+                            isWalkingRoute = true
+                        )
+
+                        currentPolyline = googleMap.addPolyline(walkingRoutePolyline)
+
+                        Toast.makeText(
+                            requireContext(),
+                            "Parada seleccionada. Ahora selecciona un bus para ver el tiempo de llegada",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            requireContext(),
+                            "Error al obtener la ruta",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
         }
 
         googleMap.setOnMarkerClickListener { marker ->
             val busId = marker.title
-            selectedBus = busLocationViewModel.busLocations.value?.firstOrNull { it.busId == busId }
 
-            selectedBus?.let { bus ->
-                // Verificamos si ya se seleccionó una ubicación de espera
-                waitingLocation?.let { waitingPoint ->
-                    // Calculamos la distancia en metros
-                    val busLocation = Location(bus.location.lat, bus.location.lng)
-                    val distanceInMeters = calculateDistance(waitingPoint, busLocation) // Aquí calculamos la distancia en metros
+            if (busId == "Esperar bus aquí") {
+                if (waitingLocation != null && currentPolyline != null) {
+                    val walkingDistance = calculatePolylineDistance(currentPolyline!!)
+                    val walkingTime = calculateWalkingTime(walkingDistance)
 
-                    // Convertimos la distancia en km y m
-                    val kilometers = (distanceInMeters / 1000).toInt()
-                    val meters = (distanceInMeters % 1000).toInt()
-                    val distanceFormatted = if (kilometers > 0) {
-                        "$kilometers km $meters m"
+                    marker.title = "🚏 Parada Seleccionada"
+                    marker.snippet = "🚶‍♂️ $walkingTime • ${walkingDistance.toInt()}m hasta aquí"
+
+                    marker.showInfoWindow()
+
+                    Toast.makeText(
+                        requireContext(),
+                        "🚶‍♂️ Caminarás $walkingTime para llegar a la parada (${walkingDistance.toInt()}m)",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@setOnMarkerClickListener true
+            }
+
+            if (busId != "Esperar bus aquí" && busId != "Tu ubicación" && busId != "🚏 Parada Seleccionada") {
+                selectedBus =
+                    busLocationViewModel.busLocations.value?.firstOrNull { it.busId == busId }
+
+                selectedBus?.let { bus ->
+                    if (waitingLocation != null && selectedMarker != null) {
+                        lifecycleScope.launch {
+                            try {
+                                val busLocation = LatLng(bus.location.lat, bus.location.lng)
+                                val stopLocation = selectedMarker!!.position
+
+                                val routeProvider = RouteProvider()
+                                val (busToStopRoute, _) = routeProvider.getRouteBetweenLocations(
+                                    busLocation,
+                                    stopLocation,
+                                    isWalkingRoute = false
+                                )
+
+                                val tempPolyline = googleMap.addPolyline(busToStopRoute)
+                                val distance = calculatePolylineDistance(tempPolyline)
+                                val eta = calculateETA(distance)
+
+                                tempPolyline.remove()
+
+                                showBusDetailsModal(bus, eta, "${distance.toInt()} m")
+
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                showBusDetailsModal(bus, "Calculando...", "Calculando...")
+                            }
+                        }
                     } else {
-                        "$meters m"
+                        Toast.makeText(
+                            requireContext(),
+                            "Primero selecciona una parada en el mapa",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-
-                    val eta = calculateETA(distanceInMeters)
-
-                    showBusDetailsModal(bus, eta, distanceFormatted)
-                } ?: run {
-                    Toast.makeText(requireContext(), "Por favor selecciona primero una ubicación de espera.", Toast.LENGTH_SHORT).show()
                 }
             }
 
             true
         }
+    }
+    private fun calculatePolylineDistance(polyline: Polyline): Float {
+        var totalDistance = 0f
+
+        val points = polyline.points
+        for (i in 0 until points.size - 1) {
+            val start = points[i]
+            val end = points[i + 1]
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
+            totalDistance += results[0]
+        }
+        return totalDistance
+    }
+    private fun calculateETA(distance: Float): String {
+        val busSpeed = 3.5
+
+        val timeInSeconds = distance / busSpeed
+
+        val timeInMinutes = timeInSeconds / 60
+
+        return "${timeInMinutes.toInt()} min"
 
     }
 
-    private fun checkLocationPermissionAndEnable() {
+        private fun checkLocationPermissionAndEnable() {
         when {
             ContextCompat.checkSelfPermission(
                 requireContext(),
@@ -247,11 +485,12 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
+
     private fun requestUserLocationUpdate() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-            .setMaxUpdates(1)  // Solo queremos una actualización
+            .setMaxUpdates(1)
             .build()
 
         val locationCallback = object : LocationCallback() {
@@ -272,7 +511,7 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
                         userLocationMarker?.position = latLng
                     }
                 }
-                fusedLocationClient.removeLocationUpdates(this) // detener después de recibir 1 ubicación
+                fusedLocationClient.removeLocationUpdates(this)
             }
         }
 
@@ -291,22 +530,36 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
         }
     }
 
-
     override fun onResume() {
         super.onResume()
 
-        if (!::googleMap.isInitialized) return
-
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            handler.postDelayed({
-                if (locationSettingsChecker.isLocationEnabled()) {
-                    enableUserLocation()
-                    refreshUserLocation()
-                } else {
-                    showLocationDisabledDialog()
-                }
-            }, 1500)  // Delay para dejar que sistema actualice estado GPS
+        val busId = getBusId()
+        if (busId != null) {
+            val intent = Intent(requireContext(), BusLocationService::class.java)
+            requireContext().startService(intent)
+        } else {
+            Toast.makeText(requireContext(), "No se pudo obtener el ID del bus", Toast.LENGTH_SHORT).show()
         }
+
+        if (shouldShowIncertidumbreForm()) {
+            val incertFormDialog = IncertidumbreDialogFragment()
+            incertFormDialog.show(childFragmentManager, "IncertidumbreDialog")
+        }
+    }
+
+    private fun shouldShowIncertidumbreForm(): Boolean {
+        val preferences = requireContext().getSharedPreferences("USER_PREFS", Context.MODE_PRIVATE)
+        val showIncertidumbre = preferences.getBoolean("showIncertidumbre", true)
+
+        Log.d("MapaFragment", "shouldShowIncertidumbreForm: $showIncertidumbre")
+        return showIncertidumbre
+    }
+
+
+    private fun generateBusId(): String {
+        val prefix = "AYO"
+        val number = (100..999).random()
+        return "$prefix-$number"
     }
 
     private fun showLocationDisabledDialog() {
@@ -339,7 +592,6 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
             }
         }
     }
-
 
     private fun enableUserLocation() {
         if (!::googleMap.isInitialized) return
@@ -384,44 +636,7 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
         requestUserLocationUpdate()
     }
 
-    private fun updateBusMarkers(buses: List<BusLocation>) {
-        val busesIds = buses.map { it.busId }.toSet()
-
-        val iterator = busMarkers.entries.iterator()
-        while (iterator.hasNext()) {
-            val entry = iterator.next()
-            if (entry.key !in busesIds) {
-                entry.value.remove()
-                iterator.remove()
-            }
-        }
-
-        for (bus in buses) {
-            val position = LatLng(bus.location.lat, bus.location.lng)
-            val marker = busMarkers[bus.busId]
-            if (marker == null) {
-                val originalBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_bus_icon)
-                val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 100, 100, false)
-
-                val newMarker = googleMap.addMarker(
-                    MarkerOptions()
-                        .position(position)
-                        .title(bus.busId)
-                        .icon(BitmapDescriptorFactory.fromBitmap(resizedBitmap))
-                )
-                if (newMarker != null) {
-                    busMarkers[bus.busId] = newMarker
-                }
-            } else {
-                marker.position = position
-            }
-        }
-    }
-
-    private fun findNearestPointOnRoute(userLocation: LatLng): LatLng {
-        // Asegúrate de que la ruta del bus está cargada
-        val busRouteCoordinates = busRouteViewModel.busRoute.value?.points ?: return userLocation
-
+    private fun findNearestPointOnRoute(userLocation: LatLng, busRouteCoordinates: List<LatLng>): LatLng {
         var closestDistance = Float.MAX_VALUE
         var closestPoint = busRouteCoordinates[0]
 
@@ -429,14 +644,11 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
             val start = busRouteCoordinates[i - 1]
             val end = busRouteCoordinates[i]
 
-            // Encuentra el punto más cercano de la línea
             val closest = closestPointOnLine(userLocation, start, end)
 
-            // Calcula la distancia entre la ubicación del usuario y el punto más cercano
             val distance = FloatArray(1)
             android.location.Location.distanceBetween(userLocation.latitude, userLocation.longitude, closest.latitude, closest.longitude, distance)
 
-            // Si este punto es más cercano, lo actualizamos
             if (distance[0] < closestDistance) {
                 closestDistance = distance[0]
                 closestPoint = closest
@@ -444,7 +656,6 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
         }
         return closestPoint
     }
-
 
     private fun closestPointOnLine(point: LatLng, start: LatLng, end: LatLng): LatLng {
         val lineLength = distanceBetween(start, end)
@@ -462,5 +673,41 @@ class MapaFragment : Fragment(), OnMapReadyCallback {
     override fun onDestroy() {
         super.onDestroy()
         busLocationViewModel.stopListening()
+    }
+    private fun startLocationUpdates() {
+        val handler = Handler(Looper.getMainLooper())
+        val locationUpdateInterval: Long = 5000
+
+        handler.postDelayed(object : Runnable {
+            override fun run() {
+                getCurrentLocationAndUpdateBusLocation()
+                handler.postDelayed(this, locationUpdateInterval)
+            }
+        }, locationUpdateInterval)
+    }
+
+
+    private fun getCurrentLocationAndUpdateBusLocation() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    val lat = it.latitude
+                    val lng = it.longitude
+                    val busId = getBusId()
+                    busId?.let {
+                        busLocationRepository.updateBusLocation(busId, lat, lng)
+                    }
+                }
+            }.addOnFailureListener { exception ->
+                Toast.makeText(requireContext(), "Error al obtener la ubicación: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            requestLocationPermission()
+        }
+    }
+
+    private fun requestLocationPermission() {
+        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 }

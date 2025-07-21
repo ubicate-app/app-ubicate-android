@@ -4,14 +4,14 @@
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
-
     <style name="CustomButtonStyle">
         <item name="android:background">@color/green</item>
     </style>
 
     <style name="Theme.Ubicate.Splash" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowBackground">#43A64F</item> <!-- verde de fondo -->
+        <item name="android:windowBackground">#09AF00</item>
+        <!-- AGREGAR ESTA LÍNEA con tools:targetApi -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#09AF00</item>
     </style>
-
 
 </resources>

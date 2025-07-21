@@ -72,6 +72,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.navigation.fragment)
+    implementation(libs.androidx.media3.common.ktx)
 
     // Testing
     testImplementation(libs.junit)
@@ -81,8 +82,9 @@ dependencies {
     implementation ("androidx.core:core-splashscreen:1.0.1")
     implementation ("com.airbnb.android:lottie:6.0.0")
     implementation ("com.google.android.material:material:1.9.0")
-
-
+    implementation ("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
 }
 apply(plugin = "com.google.gms.google-services")
 

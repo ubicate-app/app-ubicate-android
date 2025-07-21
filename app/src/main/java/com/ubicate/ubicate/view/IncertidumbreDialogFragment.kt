@@ -1,5 +1,6 @@
 package com.ubicate.ubicate.view
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,8 @@ class IncertidumbreDialogFragment : DialogFragment() {
     private lateinit var radioGroupPregunta1: RadioGroup
     private lateinit var radioGroupPregunta2: RadioGroup
     private lateinit var radioGroupPregunta3: RadioGroup
+    private lateinit var radioGroupPregunta4: RadioGroup
+
     private lateinit var submitButton: Button
 
     override fun onCreateView(
@@ -27,42 +30,40 @@ class IncertidumbreDialogFragment : DialogFragment() {
 
         val view = inflater.inflate(R.layout.dialog_incertidumbre, container, false)
 
-        // Referencias a los elementos del layout
         radioGroupPregunta1 = view.findViewById(R.id.radioGroupPregunta1)
         radioGroupPregunta2 = view.findViewById(R.id.radioGroupPregunta2)
         radioGroupPregunta3 = view.findViewById(R.id.radioGroupPregunta3)
+        radioGroupPregunta4 = view.findViewById(R.id.radioGroupPregunta4)
+
         submitButton = view.findViewById(R.id.submitButton)
 
-        // Configurar el comportamiento del botón
         submitButton.setOnClickListener {
-            // Obtener las respuestas seleccionadas
             val respuesta1 = getRatingForQuestion(radioGroupPregunta1)
             val respuesta2 = getRatingForQuestion(radioGroupPregunta2)
             val respuesta3 = getRatingForQuestion(radioGroupPregunta3)
+            val respuesta4 = getRatingForQuestion(radioGroupPregunta4)
 
-            // Verificar si todas las preguntas tienen una respuesta seleccionada
-            if (respuesta1 != -1 && respuesta2 != -1 && respuesta3 != -1) {
-                // Generar un ID único para cada formulario
+            if (respuesta1 != -1 && respuesta2 != -1 && respuesta3 != -1 && respuesta4 != -1) {
+
                 val formId = UUID.randomUUID().toString()
 
-                // Crear el objeto del formulario con las respuestas
                 val formulario = FormularioIncertidumbre(
                     formId = formId,
                     pregunta1 = respuesta1,
                     pregunta2 = respuesta2,
                     pregunta3 = respuesta3,
-                    fechaEnvio = System.currentTimeMillis()  // Obtener la fecha y hora actuales
+                    fechaEnvio = System.currentTimeMillis()
                 )
 
-                // Guardar el formulario en el repositorio
                 IncertidumbreRepository().saveIncertidumbreForm(formulario)
 
-                // Marcar que el formulario fue enviado
+                val preferences = requireContext().getSharedPreferences("USER_PREFS", Context.MODE_PRIVATE)
+                preferences.edit().putBoolean("showIncertidumbre", false).apply()
+
                 (activity as? MainActivity)?.markIncertidumbreAsSubmitted()
 
-                // Mensaje de éxito
                 Toast.makeText(requireContext(), "¡Gracias por tu evaluación!", Toast.LENGTH_SHORT).show()
-                dismiss()  // Cierra el diálogo
+                dismiss()
             } else {
                 Toast.makeText(requireContext(), "Por favor, selecciona todas las puntuaciones.", Toast.LENGTH_SHORT).show()
             }
@@ -71,10 +72,9 @@ class IncertidumbreDialogFragment : DialogFragment() {
         return view
     }
 
-    // Método para obtener el valor de la respuesta seleccionada de un RadioGroup
     private fun getRatingForQuestion(radioGroup: RadioGroup): Int {
         val selectedRadioButtonId = radioGroup.checkedRadioButtonId
-        if (selectedRadioButtonId == -1) return -1 // No se seleccionó ninguna respuesta
+        if (selectedRadioButtonId == -1) return -1
 
         val selectedRadioButton: RadioButton = view?.findViewById(selectedRadioButtonId) ?: return -1
         return when (selectedRadioButton.text.toString()) {

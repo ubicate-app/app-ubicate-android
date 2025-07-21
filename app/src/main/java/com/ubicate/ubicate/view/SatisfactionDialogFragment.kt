@@ -21,38 +21,27 @@ class SatisfactionDialogFragment : DialogFragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        // Inflar el layout
         val view = inflater.inflate(R.layout.dialog_satisfaction, container, false)
 
-        // Referencias a los elementos del layout
         ratingBar = view.findViewById(R.id.ratingBar)
         submitButton = view.findViewById(R.id.submitButton)
 
-        // Configurar el comportamiento del botón
         submitButton.setOnClickListener {
             val rating = ratingBar.rating.toInt()
 
-            // Verifica si el usuario ha dado una puntuación
             if (rating > 0) {
-                // Generar un ID único para cada formulario
                 val formId = UUID.randomUUID().toString()
 
-                // Crear el objeto del formulario
                 val formulario = FormularioSatisfaccion(
-                    formId = formId,  // Usamos un ID único para cada formulario
+                    formId = formId,
                     puntuacion = rating,
                     fechaEnvio = System.currentTimeMillis()
                 )
 
-                // Guardar en el repositorio
                 SatisfactionRepository().saveSatisfactionForm(formulario)
-
-                // Mensaje de éxito
                 Toast.makeText(requireContext(), "¡Gracias por tu evaluación!", Toast.LENGTH_SHORT).show()
-                dismiss()  // Cierra el diálogo
-
-                // Cierra la actividad después de enviar el formulario
-                activity?.finish()  // Esto cerrará la actividad y la aplicación
+                dismiss()
+                activity?.finish()
 
             } else {
                 Toast.makeText(requireContext(), "Por favor, selecciona una puntuación.", Toast.LENGTH_SHORT).show()

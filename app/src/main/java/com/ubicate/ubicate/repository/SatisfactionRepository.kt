@@ -9,7 +9,7 @@ class SatisfactionRepository {
     private val database: DatabaseReference = FirebaseDatabase.getInstance().reference
 
     fun saveSatisfactionForm(formulario: FormularioSatisfaccion) {
-        val key = formulario.formId  // Usamos el formId generado como clave
+        val key = formulario.formId
         database.child("satisfaction_forms").child(key).setValue(formulario)
     }
 }
